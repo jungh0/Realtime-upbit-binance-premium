@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="">
+  <meta name="author" content="">
+  <title>프리미엄</title>
+  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+
+  <!-- <link rel='stylesheet' href='/stylesheets/style.css' /> -->
+  <link href="css/bootstrap.css" rel="stylesheet">
+  <link href="css/jumbotron-narrow.css" rel="stylesheet">
+
+</head>
+
+<script type="text/javascript">
+  getusdkrw()
+  function numberWithCommas(x) {
+    if (x.toString().indexOf(".") >= 0) {
+      var tmp = x.toString().split(".")
+      var tmp1 = tmp[0].toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+      var tmp2 = tmp[1].replace(/[\.0]0*$/, "")
+      return tmp1 + "." + tmp2;
+    } else {
+      return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+
+  }
+  function getusdkrw() {
+    $.getJSON('https://api.exchangeratesapi.io/latest?base=USD')
+      .done(function (data) {
+        var cur = $(this).attr('cur');
+        var krw = data.rates['KRW'].toString();
+        if (krw.indexOf(".") >= 0) {
+          krw = krw.split(".")[0]
+        }
+        krw = numberWithCommas(krw)
+        $('#usdkrw').text(krw);
+      })
+
+  }
+</script>
+
+<script type="text/javascript">
+  if ('WebSocket' in window) {
+    var ws = new WebSocket("wss://stream.binance.com:9443/stream?streams=btcusdt@trade/ethusdt@trade/xrpusdt@trade");
+    ws.onopen = function () { };
+    ws.onmessage = function (evt) {
+      $('#bin_status').text('connected');
+      var usdkrw = $("#usdkrw").text()
+      $jsonn = JSON.parse(evt.data)['data'];
+      $symbol = $jsonn['s'];
+      $num = $jsonn['p'] * usdkrw.replace(",", "");
+      $price = numberWithCommas($num);
+      if ($symbol == 'BTCUSDT') { $('#bin_btcusdt').text($price); }
+      else if ($symbol == 'ETHUSDT') { $('#bin_ethusdt').text($price); }
+      else if ($symbol == 'XRPUSDT') { $('#bin_xrpusdt').text($price); }
+    };
+    ws.onclose = function () { $('#bin_status').text('closed'); };
+  }
+  else $('#bin_status').text('disconnected');
+</script>
+
+<script type="text/javascript">
+  if ('WebSocket' in window) {
+    var ws2 = new WebSocket("wss://api.upbit.com/websocket/v1");
+    ws2.binaryType = 'arraybuffer';
+    ws2.onopen = function () {
+      ws2.send('[{"ticket":"test"},{"type":"trade","codes":["KRW-BTC","KRW-ETH","KRW-XRP"]}]');
+    };
+    ws2.onmessage = function (evt2) {
+      $('#upbit_status').text('connected');
+      var enc = new TextDecoder("utf-8");
+      var arr = new Uint8Array(evt2.data);
+      $jsonn2 = JSON.parse(enc.decode(arr));
+      $symbol2 = $jsonn2['code'];
+      $price2 = numberWithCommas($jsonn2['trade_price']);
+      if ($symbol2 == 'KRW-BTC') { $('#upbit_btckrw').text($price2); }
+      else if ($symbol2 == 'KRW-ETH') { $('#upbit_ethkrw').text($price2); }
+      else if ($symbol2 == 'KRW-XRP') { $('#upbit_xrpkrw').text($price2); }
+    };
+    ws2.onclose = function () { $('#upbit_status').text('closed'); };
+  }
+  else $('#upbit_status').text('disconnected');
+</script>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <nav>
+        <ul class="nav nav-pills pull-right">
+          <li role="presentation" class="active">
+            <a href="">1 USD = <span id="usdkrw"></span> KRW
+            </a>
+          </li>
+        </ul>
+      </nav>
+      <h3 class="text-muted">프리미엄</h3>
+    </div>
+
+    <div class="jumbotron">
+      <p class="lead">
+
+        <table style="width: 100%">
+          <tbody>
+            <tr>
+              <td>코인</td>
+              <td>업비트(원)</td>
+              <td>바이낸스(원)</td>
+              <td>바이낸스(달러)</td>
+              <td>프리미엄</td>
+            </tr>
+            <tr>
+              <td>BTC</td>
+              <td><span id="upbit_btckrw"></span></td>
+              <td>---</td>
+              <td><span id="bin_btcusdt"></span></td>
+              <td>---</td>
+            </tr>
+            <tr>
+              <td>ETH</td>
+              <td><span id="upbit_ethkrw"></span></td>
+              <td>---</td>
+              <td><span id="bin_ethusdt"></span></td>
+              <td>---</td>
+            </tr>
+            <tr>
+              <td>XRP</td>
+              <td><span id="upbit_xrpkrw"></span></td>
+              <td>---</td>
+              <td><span id="bin_xrpusdt"></span></td>
+              <td>---</td>
+            </tr>
+          </tbody>
+        </table>
+
+    </div>
+    <footer class="footer">
+      <p style="float: right">&copy; Wiffy 2019</p>
+      <p>Binance Status: <span id="bin_status">disconnected</span> </p>
+      <p>Upbit Status: <span id="upbit_status">disconnected</span></p>
+
+    </footer>
+
+  </div> <!-- /container -->
+
+</body>
+
+</html>
