@@ -13,6 +13,7 @@
   <!-- <link rel='stylesheet' href='/stylesheets/style.css' /> -->
   <link href="css/bootstrap.css" rel="stylesheet">
   <link href="css/jumbotron-narrow.css" rel="stylesheet">
+  <link href="css/table.css" rel="stylesheet">
 
 </head>
 
@@ -27,8 +28,6 @@
     } else {
       return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
-
-
   }
   function getusdkrw() {
     $.getJSON('https://api.exchangeratesapi.io/latest?base=USD')
@@ -41,7 +40,22 @@
         krw = numberWithCommas(krw)
         $('#usdkrw').text(krw);
       })
+  }
+  function pre() {
+    var upbit = $("#upbit_btckrw").text().replace(/,/gi, "");
+    var bin = $("#bin_btckrw").text().replace(/,/gi, "");
+    $('#btcpre').text(precaculate(upbit, bin));
 
+    upbit = $("#upbit_ethkrw").text().replace(/,/gi, "");
+    bin = $("#bin_ethkrw").text().replace(/,/gi, "");
+    $('#ethpre').text(precaculate(upbit, bin));
+
+    upbit = $("#upbit_xrpkrw").text().replace(/,/gi, "");
+    bin = $("#bin_xrpkrw").text().replace(/,/gi, "");
+    $('#xrppre').text(precaculate(upbit, bin));
+  }
+  function precaculate(a, b) {
+    return ((a - b) / a * 100).toFixed(3) + "%";
   }
 </script>
 
@@ -51,14 +65,30 @@
     ws.onopen = function () { };
     ws.onmessage = function (evt) {
       $('#bin_status').text('connected');
-      var usdkrw = $("#usdkrw").text()
       $jsonn = JSON.parse(evt.data)['data'];
       $symbol = $jsonn['s'];
-      $num = $jsonn['p'] * usdkrw.replace(",", "");
-      $price = numberWithCommas($num);
-      if ($symbol == 'BTCUSDT') { $('#bin_btcusdt').text($price); }
-      else if ($symbol == 'ETHUSDT') { $('#bin_ethusdt').text($price); }
-      else if ($symbol == 'XRPUSDT') { $('#bin_xrpusdt').text($price); }
+      $priceusd = numberWithCommas($jsonn['p']);
+
+      var usdkrw = $("#usdkrw").text();
+      $pricekrwT = $jsonn['p'] * usdkrw.replace(",", "");
+      if ($pricekrwT.toString().indexOf(".") >= 0) {
+        $pricekrwT = $pricekrwT.toString().split('.')[0];
+      }
+      $pricekrw = numberWithCommas($pricekrwT);
+
+      if ($symbol == 'BTCUSDT') {
+        $('#bin_btcusdt').text($priceusd);
+        $('#bin_btckrw').text($pricekrw);
+      }
+      else if ($symbol == 'ETHUSDT') {
+        $('#bin_ethusdt').text($priceusd);
+        $('#bin_ethkrw').text($pricekrw);
+      }
+      else if ($symbol == 'XRPUSDT') {
+        $('#bin_xrpusdt').text($priceusd);
+        $('#bin_xrpkrw').text($pricekrw);
+      }
+      pre()
     };
     ws.onclose = function () { $('#bin_status').text('closed'); };
   }
@@ -82,6 +112,7 @@
       if ($symbol2 == 'KRW-BTC') { $('#upbit_btckrw').text($price2); }
       else if ($symbol2 == 'KRW-ETH') { $('#upbit_ethkrw').text($price2); }
       else if ($symbol2 == 'KRW-XRP') { $('#upbit_xrpkrw').text($price2); }
+      pre()
     };
     ws2.onclose = function () { $('#upbit_status').text('closed'); };
   }
@@ -102,42 +133,41 @@
       <h3 class="text-muted">프리미엄</h3>
     </div>
 
-    <div class="jumbotron">
-      <p class="lead">
-
-        <table style="width: 100%">
+    <div class="jumbotron" style="padding : 0;margin-bottom: 20px;">
+        <table style="width:100%;height:100%">
+          <thead>
+            <tr >
+              <th style="text-align: center">&nbsp&nbsp코인&nbsp&nbsp</th>
+              <th style="text-align: center">업비트(₩)</th>
+              <th style="text-align: center; display:none">바이낸스(₩)</th>
+              <th style="text-align: center">바이낸스($)</th>
+              <th style="text-align: center">프리미엄</th>
+            </tr>
+          </thead>
           <tbody>
             <tr>
-              <td>코인</td>
-              <td>업비트(원)</td>
-              <td>바이낸스(원)</td>
-              <td>바이낸스(달러)</td>
-              <td>프리미엄</td>
-            </tr>
-            <tr>
               <td>BTC</td>
-              <td><span id="upbit_btckrw"></span></td>
-              <td>---</td>
-              <td><span id="bin_btcusdt"></span></td>
-              <td>---</td>
+              <td><span id="upbit_btckrw">0</span></td>
+              <td style="display: none"><span id="bin_btckrw">0</span></td>
+              <td><span id="bin_btcusdt">0</span></td>
+              <td><span id="btcpre"></span></td>
             </tr>
             <tr>
               <td>ETH</td>
-              <td><span id="upbit_ethkrw"></span></td>
-              <td>---</td>
-              <td><span id="bin_ethusdt"></span></td>
-              <td>---</td>
+              <td><span id="upbit_ethkrw">0</span></td>
+              <td style="display: none"><span id="bin_ethkrw">0</span></td>
+              <td><span id="bin_ethusdt">0</span></td>
+              <td><span id="ethpre"></span></td>
             </tr>
             <tr>
               <td>XRP</td>
-              <td><span id="upbit_xrpkrw"></span></td>
-              <td>---</td>
-              <td><span id="bin_xrpusdt"></span></td>
-              <td>---</td>
+              <td><span id="upbit_xrpkrw">0</span></td>
+              <td style="display: none"><span id="bin_xrpkrw">0</span></td>
+              <td><span id="bin_xrpusdt">0</span></td>
+              <td><span id="xrppre"></span></td>
             </tr>
           </tbody>
         </table>
-
     </div>
     <footer class="footer">
       <p style="float: right">&copy; Wiffy 2019</p>
