@@ -8,6 +8,7 @@
 - [x] Real-time socket communication
 - [x] Live exchange rate information USD/KRW
 - [x] BTC ETH XRP support
+- [x] Live USD/KRW
 
 ## Introduction
 **Real Time Socket Premium Check Webpage**<br>
