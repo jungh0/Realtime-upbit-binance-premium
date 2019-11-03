@@ -9,6 +9,7 @@
 - [x] Live exchange rate information USD/KRW
 - [x] BTC ETH XRP support
 - [x] Live USD/KRW
+- [x] Binance Upbit server status
 
 ## Introduction
 **Real Time Socket Premium Check Webpage**<br>
