@@ -18,17 +18,21 @@
 </head>
 
 <script type="text/javascript">
-  getusdkrw()
+  let mainData = {};
+
+  getusdkrw();
+
   function numberWithCommas(x) {
     if (x.toString().indexOf(".") >= 0) {
-      var tmp = x.toString().split(".")
-      var tmp1 = tmp[0].toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-      var tmp2 = tmp[1].replace(/[\.0]0*$/, "")
+      let tmp = x.toString().split(".")
+      let tmp1 = tmp[0].toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+      let tmp2 = tmp[1].replace(/[\.0]0*$/, "")
       return tmp1 + "." + tmp2;
     } else {
       return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     }
   }
+
   function getusdkrw() {
     // $.getJSON('https://api.exchangeratesapi.io/latest?base=USD')
     $.getJSON('https://quotation-api-cdn.dunamu.com/v1/forex/recent?codes=FRX.KRWUSD')
@@ -38,58 +42,58 @@
         // if (krw.indexOf(".") >= 0) {
         //   krw = krw.split(".")[0]
         // }
-        krw = numberWithCommas(krw)
-        $('#usdkrw').text(krw);
+        mainData['usdkrw'] = krw
+
+        krwC = numberWithCommas(krw)
+        $('#usdkrw').text(krwC);
       })
   }
-  function pre() {
-    var upbit = $("#upbit_btckrw").text().replace(/,/gi, "");
-    var bin = $("#bin_btckrw").text().replace(/,/gi, "");
-    $('#btcpre').text(precaculate(upbit, bin));
 
-    upbit = $("#upbit_ethkrw").text().replace(/,/gi, "");
-    bin = $("#bin_ethkrw").text().replace(/,/gi, "");
-    $('#ethpre').text(precaculate(upbit, bin));
-
-    upbit = $("#upbit_xrpkrw").text().replace(/,/gi, "");
-    bin = $("#bin_xrpkrw").text().replace(/,/gi, "");
-    $('#xrppre').text(precaculate(upbit, bin));
+  function pre(upbitFlag,bithumbFlag,term) {
+    let array = ["btc","eth","xrp","bch"];
+    array.forEach(element => {
+      if(term.indexOf(element) != -1){
+        let upbit = mainData['upbit_krw-' + element];
+        let binance = mainData['binance_' + element + 'usdt_k'];
+        let bithumb = mainData['bithumb_' + element + '_krw'];
+        if(upbitFlag && upbit != undefined && binance != undefined){
+          $('#' + element + 'pre').text(precaculate(upbit, binance));
+        }
+        if(bithumbFlag && bithumb != undefined && binance != undefined){
+          $('#' + element + 'pre2').text(precaculate(bithumb, binance));
+        }
+      }
+    });
   }
+
   function precaculate(a, b) {
     return ((a - b) / b * 100).toFixed(3) + "%";
   }
+
 </script>
 
 <script type="text/javascript">
   if ('WebSocket' in window) {
-    var ws = new WebSocket("wss://stream.binance.com:9443/stream?streams=btcusdt@trade/ethusdt@trade/xrpusdt@trade");
+    let ws = new WebSocket("wss://stream.binance.com:9443/stream?streams=btcusdt@trade/ethusdt@trade/xrpusdt@trade/bchusdt@trade");
     ws.onopen = function () { };
     ws.onmessage = function (evt) {
-      $('#bin_status').text('connected');
-      $jsonn = JSON.parse(evt.data)['data'];
-      $symbol = $jsonn['s'];
-      $priceusd = numberWithCommas($jsonn['p']);
+      try{
+        $('#bin_status').text('connected');
+        let jsonn = JSON.parse(evt.data)['data'];
 
-      var usdkrw = $("#usdkrw").text();
-      $pricekrwT = $jsonn['p'] * usdkrw.replace(",", "");
-      if ($pricekrwT.toString().indexOf(".") >= 0) {
-        $pricekrwT = $pricekrwT.toString().split('.')[0];
-      }
-      $pricekrw = numberWithCommas($pricekrwT);
+        let symbol = jsonn['s'];
+        let priceusd = jsonn['p'];
+        let priceusdC = numberWithCommas(priceusd);
+        let pricekrw = jsonn['p'] * mainData['usdkrw'];
 
-      if ($symbol == 'BTCUSDT') {
-        $('#bin_btcusdt').text($priceusd);
-        $('#bin_btckrw').text($pricekrw);
+        let term = "binance_" + symbol.toLowerCase();
+        $('#' + term).text(priceusdC);
+        $('#' + term + "2").text(priceusdC);
+        mainData[term] = priceusd;
+        mainData[term + "_k"] = pricekrw;
+        pre(true,true,term);
+      }catch{
       }
-      else if ($symbol == 'ETHUSDT') {
-        $('#bin_ethusdt').text($priceusd);
-        $('#bin_ethkrw').text($pricekrw);
-      }
-      else if ($symbol == 'XRPUSDT') {
-        $('#bin_xrpusdt').text($priceusd);
-        $('#bin_xrpkrw').text($pricekrw);
-      }
-      pre()
     };
     ws.onclose = function () { $('#bin_status').text('closed'); };
   }
@@ -98,26 +102,61 @@
 
 <script type="text/javascript">
   if ('WebSocket' in window) {
-    var ws2 = new WebSocket("wss://api.upbit.com/websocket/v1");
+    let ws2 = new WebSocket("wss://api.upbit.com/websocket/v1");
     ws2.binaryType = 'arraybuffer';
     ws2.onopen = function () {
-      ws2.send('[{"ticket":"test"},{"type":"trade","codes":["KRW-BTC","KRW-ETH","KRW-XRP"]}]');
+      ws2.send('[{"ticket":"test"},{"type":"trade","codes":["KRW-BTC","KRW-ETH","KRW-XRP","KRW-BCH"]}]');
     };
-    ws2.onmessage = function (evt2) {
-      $('#upbit_status').text('connected');
-      var enc = new TextDecoder("utf-8");
-      var arr = new Uint8Array(evt2.data);
-      $jsonn2 = JSON.parse(enc.decode(arr));
-      $symbol2 = $jsonn2['code'];
-      $price2 = numberWithCommas($jsonn2['trade_price']);
-      if ($symbol2 == 'KRW-BTC') { $('#upbit_btckrw').text($price2); }
-      else if ($symbol2 == 'KRW-ETH') { $('#upbit_ethkrw').text($price2); }
-      else if ($symbol2 == 'KRW-XRP') { $('#upbit_xrpkrw').text($price2); }
-      pre()
+    ws2.onmessage = function (evt) {
+      try{
+        $('#upbit_status').text('connected');
+        let enc = new TextDecoder("utf-8");
+        let arr = new Uint8Array(evt.data);
+        let jsonn = JSON.parse(enc.decode(arr));
+
+        let symbol = jsonn['code'];
+        let price = jsonn['trade_price'];
+        let priceC = numberWithCommas(price);
+
+        let term = "upbit_" + symbol.toLowerCase();
+        $('#' + term).text(priceC);
+        mainData[term] = price;
+        pre(true,false,term);
+      }catch{
+      }
     };
     ws2.onclose = function () { $('#upbit_status').text('closed'); };
   }
   else $('#upbit_status').text('disconnected');
+</script>
+
+<script type="text/javascript">
+  if ('WebSocket' in window) {
+    let ws3 = new WebSocket("wss://pubwss.bithumb.com/pub/ws");
+    ws3.binaryType = 'arraybuffer';
+    ws3.onopen = function () {
+      ws3.send('{"type":"transaction", "symbols":["BTC_KRW" , "ETH_KRW", "XRP_KRW", "BCH_KRW"]}');
+    };
+    ws3.onmessage = function (evt) {
+      try{
+        $('#bithumb_status').text('connected');
+        let jsonn = JSON.parse(evt.data);
+        let tmp = jsonn.content.list[0];
+
+        let symbol = tmp.symbol;
+        let price = tmp.contPrice;
+        let priceC = numberWithCommas(price);
+
+        let term = "bithumb_" + symbol.toLowerCase();
+        $('#' + term).text(priceC);
+        mainData[term] = price;
+        pre(false,true,term);
+      }catch{
+      }
+    };
+    ws3.onclose = function () { $('#bithumb_status').text('closed'); };
+  }
+  else $('#bithumb_status').text('disconnected');
 </script>
 
 <body>
@@ -134,13 +173,12 @@
       <h3 class="text-muted">정프리미엄</h3>
     </div>
 
-    <div class="jumbotron" style="padding : 0;margin-bottom: 20px;">
-      <table style="width:100%;height:100%">
+    <div class="jumbotron" style=" margin-bottom:20px;margin-top:20px;padding:0;">
+      <table style="width:100%;">
         <thead>
           <tr>
             <th style="text-align: center">&nbsp&nbsp코인&nbsp&nbsp</th>
             <th style="text-align: center">업비트(₩)</th>
-            <th style="text-align: center; display:none">바이낸스(₩)</th>
             <th style="text-align: center">바이낸스($)</th>
             <th style="text-align: center">프리미엄</th>
           </tr>
@@ -148,36 +186,79 @@
         <tbody>
           <tr>
             <td>BTC</td>
-            <td><span id="upbit_btckrw">0</span></td>
-            <td style="display: none"><span id="bin_btckrw">0</span></td>
-            <td><span id="bin_btcusdt">0</span></td>
+            <td><span id="upbit_krw-btc">0</span></td>
+            <td><span id="binance_btcusdt">0</span></td>
             <td><span id="btcpre"></span></td>
           </tr>
           <tr>
             <td>ETH</td>
-            <td><span id="upbit_ethkrw">0</span></td>
-            <td style="display: none"><span id="bin_ethkrw">0</span></td>
-            <td><span id="bin_ethusdt">0</span></td>
+            <td><span id="upbit_krw-eth">0</span></td>
+            <td><span id="binance_ethusdt">0</span></td>
             <td><span id="ethpre"></span></td>
           </tr>
           <tr>
             <td>XRP</td>
-            <td><span id="upbit_xrpkrw">0</span></td>
-            <td style="display: none"><span id="bin_xrpkrw">0</span></td>
-            <td><span id="bin_xrpusdt">0</span></td>
+            <td><span id="upbit_krw-xrp">0</span></td>
+            <td><span id="binance_xrpusdt">0</span></td>
             <td><span id="xrppre"></span></td>
+          </tr>
+          <tr>
+            <td>BCH</td>
+            <td><span id="upbit_krw-bch">0</span></td>
+            <td><span id="binance_bchusdt">0</span></td>
+            <td><span id="bchpre"></span></td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <div class="jumbotron" style=" margin-bottom:20px;margin-top:20px;padding:0;">
+      <table style="width:100%;">
+        <thead>
+          <tr>
+            <th style="text-align: center">&nbsp&nbsp코인&nbsp&nbsp</th>
+            <th style="text-align: center">빗 썸(₩)</th>
+            <th style="text-align: center">바이낸스($)</th>
+            <th style="text-align: center">프리미엄</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>BTC</td>
+            <td><span id="bithumb_btc_krw">0</span></td>
+            <td><span id="binance_btcusdt2">0</span></td>
+            <td><span id="btcpre2"></span></td>
+          </tr>
+          <tr>
+            <td>ETH</td>
+            <td><span id="bithumb_eth_krw">0</span></td>
+            <td><span id="binance_ethusdt2">0</span></td>
+            <td><span id="ethpre2"></span></td>
+          </tr>
+          <tr>
+            <td>XRP</td>
+            <td><span id="bithumb_xrp_krw">0</span></td>
+            <td><span id="binance_xrpusdt2">0</span></td>
+            <td><span id="xrppre2"></span></td>
+          </tr>
+          <tr>
+            <td>BCH</td>
+            <td><span id="bithumb_bch_krw">0</span></td>
+            <td><span id="binance_bchusdt2">0</span></td>
+            <td><span id="bchpre2"></span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
     <footer class="footer">
-      <p style="float: right">&copy; Wiffy 2019</p>
+      <p style="float: right">&copy; Wiffy 2020</p>
       <p>Binance Status: <span id="bin_status">disconnected</span> </p>
       <p>Upbit Status: <span id="upbit_status">disconnected</span></p>
-
+      <p>Bithumb Status: <span id="bithumb_status">disconnected</span></p>
     </footer>
 
-  </div> <!-- /container -->
+  </div>
 
 </body>
 
