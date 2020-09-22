@@ -2,7 +2,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 </br>
 
-<pre><a href="http://jpre.cafe24app.com/">http://jpre.cafe24app.com/</a></pre>
+<pre><a href="https://jpre.jungh0.com/">https://jpre.jungh0.com/</a></pre>
 
 ## Key Features
 - [x] Real-time socket communication
